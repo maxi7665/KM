@@ -1,0 +1,407 @@
+1. ./ahp.m
+function [solution, score, alternativeScores] = ahp(criteriaWeights, pairComparisonMatrix)
+
+% analytic hierarchy process 
+% criteriaWeights: array of the criterias' weights -> array[criteriaNum] =
+% criteria weight
+% pairComparisonMatrix: matrix[criteria, alternative, alternative] = rate
+% returns - number of selected alternative, score, result score vector
+
+    % get numbers of criterias and alternatives
+    criteriaNum = size(criteriaWeights, 2);
+    alternativeNum = size(pairComparisonMatrix, 2);
+
+    % array[criteria] = array[alternativeNum] = counted weight (rows - w^i) 
+    criteriaAlternativeWeightVectorArray = zeros(criteriaNum, alternativeNum);
+
+    % normalize weights vector
+    criteriaWeights = criteriaWeights / sum(criteriaWeights);
+
+    bufPairComparisonMatrix = pairComparisonMatrix;
+
+    % iterate on criterias    
+    for criteria = 1:criteriaNum    
+
+        % matrix normalization
+        for alternative = 1:alternativeNum                         
+            
+            s = sum(pairComparisonMatrix(criteria, 1:alternativeNum, alternative));            
+
+            normalizedColumn = pairComparisonMatrix(criteria, 1:alternativeNum, alternative) / s;   
+            
+            pairComparisonMatrix(criteria, 1:alternativeNum, alternative) = normalizedColumn;
+                             
+        end
+
+        %find score by criteria for alternatives
+        for alternative = 1:alternativeNum
+
+            alternativeVector = pairComparisonMatrix(criteria, alternative, :);
+
+            score = mean(alternativeVector);            
+
+            criteriaAlternativeWeightVectorArray(criteria, alternative) = score;
+        end  
+
+        mps = permute(bufPairComparisonMatrix(criteria, :, :), [2, 3, 1]);
+        vka = criteriaAlternativeWeightVectorArray(criteria, 1:alternativeNum);
+
+        fprintf('Проверка МПС критерия %d на согласованность:\n\n', criteria);
+
+        % check mps consistency
+        printMpsConsistencyCheck(mps, vka);
+
+        criteriaWeight = criteriaWeights(criteria);
+
+        criteriaAlternativeWeightVectorArray(criteria, 1:alternativeNum) = ...
+        criteriaAlternativeWeightVectorArray(criteria, 1:alternativeNum) * criteriaWeight; 
+
+        % weightedCriteria = score * criteriaWeight;
+      
+    end
+
+    alternativeScores = zeros(1, alternativeNum);    
+
+    for alternative = 1:alternativeNum
+
+        alternativeScores(alternative) = sum(criteriaAlternativeWeightVectorArray( ...
+            1:criteriaNum, ...
+            alternative));
+
+    end
+
+    %disp(alternativeScores);
+    
+    [score, solution] = max(alternativeScores);
+end
+2. ./ahpPlus.m
+function [solution, score, alternativeScores] = ahpPlus(criteriaWeights, pairComparisonMatrix)
+
+% analytic hierarchy process - modified
+% criteriaWeights: array of the criterias' weights -> array[criteriaNum] =
+% criteria weight
+% pairComparisonMatrix: matrix[criteria, alternative, alternative] = rate
+% returns - number of selected alternative, score, result score vector
+
+    % get numbers of criterias and alternatives
+    criteriaNum = size(criteriaWeights, 2);
+    alternativeNum = size(pairComparisonMatrix, 2);
+
+    % array[criteria] = array[alternativeNum] = counted weight (rows - w^i) 
+    criteriaAlternativeScoreMatrix = zeros(criteriaNum, alternativeNum);
+
+    % normalize weights vector
+    criteriaWeights = criteriaWeights / sum(criteriaWeights);
+
+    bufPairComparisonMatrix = pairComparisonMatrix;
+
+    % STAGE 1 - iterate on criterias and calculate alternative rates
+    for criteria = 1:criteriaNum    
+
+        % matrix normalization
+        for alternative = 1:alternativeNum                         
+            
+            s = sum(pairComparisonMatrix(criteria, 1:alternativeNum, alternative));       
+      
+            pairComparisonMatrix(criteria, 1:alternativeNum, alternative) = ...
+                pairComparisonMatrix(criteria, 1:alternativeNum, alternative) / s;            
+        end
+        
+        %find score by criteria for alternatives
+        for alternative = 1:alternativeNum
+
+            alternativeVector = pairComparisonMatrix(criteria, alternative, :);
+
+            score = mean(alternativeVector);
+
+            criteriaAlternativeScoreMatrix(criteria, alternative) = score;
+        end     
+
+        mps = permute(bufPairComparisonMatrix(criteria, :, :), [2, 3, 1]);
+        vka = criteriaAlternativeScoreMatrix(criteria, 1:alternativeNum);
+
+        fprintf('Проверка МПС критерия %d на согласованность:\n\n', criteria);
+
+        % check mps consistency
+        printMpsConsistencyCheck(mps, vka);
+    end
+
+    % STAGE 2 - create b-matrixes for criterias
+    criteriaBMatrixes = containers.Map('KeyType','int32','ValueType','any');
+
+    for criteria = 1:criteriaNum
+
+        bMatrix = zeros(alternativeNum, alternativeNum, 2);
+
+        for alternative1 = 1:alternativeNum
+            for alternative2 = 1:alternativeNum
+
+                score1 = criteriaAlternativeScoreMatrix(criteria, alternative1);
+                score2 = criteriaAlternativeScoreMatrix(criteria, alternative2);
+
+                s = score1 + score2;
+
+                normScore1 = score1 / s;
+                normScore2 = score2 / s;
+
+                bMatrix(alternative1, alternative2, 1) = normScore1;
+                bMatrix(alternative1, alternative2, 2) = normScore2;  
+
+            end
+        end
+
+        criteriaBMatrixes(criteria) = bMatrix;
+
+        fprintf('AHP+: b-матрица для критерия %d, измерение 1\n', criteria);
+        disp(bMatrix(:, :, 1));
+
+        fprintf('AHP+: b-матрица для критерия %d, измерение 2\n', criteria);
+        disp(bMatrix(:, :, 2));
+
+    end
+
+    % STAGE 3 - create common W-matrix
+    wMatrix = zeros(alternativeNum, alternativeNum, 2);
+
+    for alternative1 = 1:alternativeNum
+        for alternative2 = 1:alternativeNum
+
+            sum1 = 0;
+            sum2 = 0;
+
+            for criteria = 1:criteriaNum
+
+                bMatrix = criteriaBMatrixes(criteria);
+
+                alternateScore1 = bMatrix(alternative1, alternative2, 1);
+                alternateScore2 = bMatrix(alternative1, alternative2, 2);
+
+                criteriaWeight = criteriaWeights(criteria);
+
+                sum1 = sum1 + criteriaWeight * alternateScore1;
+                sum2 = sum2 + criteriaWeight * alternateScore2;
+            end               
+
+            wMatrix(alternative1, alternative2, 1) = sum1;
+            wMatrix(alternative1, alternative2, 2) = sum2;
+
+        end
+    end
+
+    disp('AHP+: итоговая W-матрица (измерение 1)');
+    disp(wMatrix(:, :, 1));
+
+    disp('AHP+: итоговая W-матрица (измерение 2)');
+    disp(wMatrix(:, :, 2));
+    
+    % STAGE 4 - count global alternative scores 
+    alternativeScores = zeros(1, alternativeNum); 
+    scoreSum = 0;
+
+    for alternative1 = 1:alternativeNum
+        s = 0;
+
+        for alternative2 = 1:alternativeNum
+            
+            s = s + wMatrix(alternative1, alternative2, 1);
+
+        end
+
+        alternativeScores(alternative1) = s;
+        scoreSum = scoreSum + s;
+    end
+
+    alternativeScores = alternativeScores / scoreSum;
+
+    [score, solution] = max(alternativeScores);
+        
+end
+3. ./ahpScript.m
+criteriaWeights = [0.5, 0.5];
+
+alternativeCriteriaRates = [1,4; 2,1];
+% alternativeCriteriaRates = [1,4; 2,1; 1/3, 8];
+% alternativeCriteriaRates = [7, 15; 10, 10; 5, 20];
+
+% [solution, score, scores] = ahp(criteriaWeights, buildPairComparisonMatrix(alternativeCriteriaRates));
+[solution, score, scores] = ahpPlus(criteriaWeights, buildPairComparisonMatrix(alternativeCriteriaRates));
+
+disp('solution:'); 
+disp(solution);
+disp('score:');
+disp(score);
+disp('rates:');
+disp(scores);
+
+4. ./buildPairComparisonMatrix.m
+function [pairComparisonMatrix] = buildPairComparisonMatrix(alternativeCriteriaRates)
+
+%create pair-comparison matrix from alternative-criteria matrix rates
+
+    criteriaNum = size(alternativeCriteriaRates, 2);
+    alternativeNum = size(alternativeCriteriaRates, 1);
+
+    pairComparisonMatrix = zeros(criteriaNum, alternativeNum, alternativeNum);
+
+    % fill the pair comparison matrix
+    for criteria = 1:criteriaNum
+        for alternative1 = 1:alternativeNum
+            for alternative2 = 1:alternativeNum
+                
+                % get alternatives' rates on current criteria
+                rate1 = alternativeCriteriaRates(alternative1, criteria);         
+                rate2 = alternativeCriteriaRates(alternative2, criteria);
+        
+                rate = rate1 / rate2;
+        
+                pairComparisonMatrix(criteria, alternative1, alternative2) = rate;
+        
+            end
+        end
+    end
+end
+5. ./lab1.m
+% "веса" критериев
+criteriasWeights = [
+    0.4, 0.2, 0.3; 
+    0.3, 0.3, 0.4; 
+    0.2, 0.5, 0.3];
+
+% оценки по 3-м критериям каждой альтернативы
+alternativeCriteriaRates = [
+    3,9,1; 
+    3,1,1;
+    9,5,7;
+    5,3,7];
+
+% МПС альтернатив по критериям
+criteriaMps = containers.Map('KeyType','int32','ValueType','any');
+
+mpsMatrix = buildPairComparisonMatrix(alternativeCriteriaRates);
+
+for criteria = 1:size(mpsMatrix, 1)
+    criteriaMps(criteria) = permute(mpsMatrix(criteria, :, :), [2,3,1]);
+end
+
+% расчет решений
+disp('Решение 1.'); compare(1, criteriaMps, criteriasWeights(1, :), 3);
+disp('Решение 2.'); compare(1, criteriaMps, criteriasWeights(2, :), 3);
+disp('Решение 3.'); compare(1, criteriaMps, criteriasWeights(3, :), 3);
+disp('Решение 4.'); compare(2, criteriaMps, criteriasWeights(1, :), 3);
+disp('Решение 5.'); compare(2, criteriaMps, criteriasWeights(2, :), 3);
+disp('Решение 6.'); compare(2, criteriaMps, criteriasWeights(3, :), 3);
+disp('Решение 7.'); compare(2, criteriaMps, criteriasWeights(1, :), 4);
+disp('Решение 8.'); compare(2, criteriaMps, criteriasWeights(2, :), 4);
+disp('Решение 9.'); compare(2, criteriaMps, criteriasWeights(3, :), 4);
+
+function [result] = compare(alg, criteriaMps, criteriaWeights, alternativeNum)
+% выполнить поиск наилучшей альтернативы
+% alg - используемый алгоритм - 1 - МАИ, 2 - ММАИ
+% criteriaMps - containers.Map (№ критерия -> МПС[№ альтернативы, № альтернативы])
+% criteriaWeights - веса критериев
+% alternateNum - кол-во альтернатив
+
+criteriaNum = size(criteriaWeights, 2);
+
+pairComparisonMatrix = zeros(criteriaNum, alternativeNum, alternativeNum);
+
+% заполнение трехмерной матрицы МПС [критерий - альтернатива - альтернатива]
+% -> оценка
+for criteria = 1:criteriaNum
+
+    mps = criteriaMps(criteria);
+
+    mps = mps(1:alternativeNum, 1:alternativeNum);
+
+    pairComparisonMatrix(criteria, :, :) = mps;
+end
+
+algs = {'МАИ', 'ММАИ'};
+
+% вывод результатов
+disp('алгоритм');
+disp(algs(alg));
+
+disp('веса критериев');
+disp(criteriaWeights);
+
+disp('МПС критериев');
+
+for criteria = 1:criteriaNum
+    disp(criteria);
+    disp(permute(pairComparisonMatrix(criteria, :, :), [2,3,1]));
+end
+
+
+% запуск работы алгоритма
+switch (alg)
+    case 1
+        [solution, score, scores] = ahp(criteriaWeights, pairComparisonMatrix);
+    case 2
+        [solution, score, scores] = ahpPlus(criteriaWeights, pairComparisonMatrix);
+    otherwise
+        error('wrong algorithm number');
+end
+
+
+disp('наилучшая альтернатива:'); 
+disp(solution);
+disp('результат:');
+disp(score);
+disp('оценки всех альтернатив:');
+disp(scores);
+
+result = solution;
+
+end
+6. ./printMpsConsistencyCheck.m
+function [result] = printMpsConsistencyCheck(mps, w)
+%Ensure that provided pair comparison matrix is valid and print result
+% mps - matrix
+% w - normalized
+
+    rows = size(mps, 1);
+    cols = size(mps, 2);
+    
+    if (rows ~= cols)
+        error('mps size is not valid');
+    end
+    
+    % максимальное собственное значение матрицы
+    eigenValue = max(eig(mps));
+
+    % вектор-столбец ВКА
+    w = transpose(w);
+    
+    disp('МПС (A):');
+    disp(mps);
+    
+    disp('ВКА (W):');
+    disp(w);
+    
+    disp('Максимальное собственное значение (n):');
+    disp(eigenValue);
+    
+    checkEigenVector1 = mps * w;
+    checkEigenVector2 = w * eigenValue;
+
+     % с точностью до 4х - знаков - против арифметики с плавающей запятой
+    checkEigenVector1 = round(checkEigenVector1, 4);
+    checkEigenVector2 = round(checkEigenVector2, 4);
+
+    disp('A * W =');
+    disp(checkEigenVector1);
+
+    disp('n * W =');
+    disp(checkEigenVector2);    
+    
+    if (checkEigenVector1 == checkEigenVector2)
+        disp('МПС согласована');
+
+        result = 1;
+    else
+        error('МПС не согласована');
+
+        result = 0;
+    end    
+end

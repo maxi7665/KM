@@ -4,42 +4,32 @@ criteriasWeights = [
     0.3, 0.3, 0.4; 
     0.2, 0.5, 0.3];
 
+% оценки по 3-м критериям каждой альтернативы
+alternativeCriteriaRates = [
+    3,9,1; 
+    3,1,1;
+    9,5,7;
+    5,3,7];
+
 % МПС альтернатив по критериям
 criteriaMps = containers.Map('KeyType','int32','ValueType','any');
 
-criteriaMps(1) = [
-    1,	1,	1/9, 1/3;
-    1,	1,	1/9, 1/3;
-    9,	9,	1,   7;
-    3,	3,	1/7, 1
-];
+mpsMatrix = buildPairComparisonMatrix(alternativeCriteriaRates);
 
-criteriaMps(2) = [
-    1,	 9,	5,	 7;
-    1/9, 1,	1/5, 1/3;
-    1/5, 5,	1,	 3;
-    1/7, 3,	1/3, 1
-];
-
-criteriaMps(3) = [
-    1,	1,	1/7, 1/5;
-    1,	1,	1/7, 1/5;
-    7,	7,	1,	 3;
-    5,	5,	1/3, 1
-];
+for criteria = 1:size(mpsMatrix, 1)
+    criteriaMps(criteria) = permute(mpsMatrix(criteria, :, :), [2,3,1]);
+end
 
 % расчет решений
-compare(1, criteriaMps, criteriasWeights(1, :), 3);
-compare(1, criteriaMps, criteriasWeights(2, :), 3);
-compare(1, criteriaMps, criteriasWeights(3, :), 3);
-compare(2, criteriaMps, criteriasWeights(1, :), 3);
-compare(2, criteriaMps, criteriasWeights(2, :), 3);
-compare(2, criteriaMps, criteriasWeights(3, :), 3);
-compare(2, criteriaMps, criteriasWeights(1, :), 4);
-compare(2, criteriaMps, criteriasWeights(2, :), 4);
-compare(2, criteriaMps, criteriasWeights(3, :), 4);
-
-
+disp('Решение 1.'); compare(1, criteriaMps, criteriasWeights(1, :), 3);
+disp('Решение 2.'); compare(1, criteriaMps, criteriasWeights(2, :), 3);
+disp('Решение 3.'); compare(1, criteriaMps, criteriasWeights(3, :), 3);
+disp('Решение 4.'); compare(2, criteriaMps, criteriasWeights(1, :), 3);
+disp('Решение 5.'); compare(2, criteriaMps, criteriasWeights(2, :), 3);
+disp('Решение 6.'); compare(2, criteriaMps, criteriasWeights(3, :), 3);
+disp('Решение 7.'); compare(2, criteriaMps, criteriasWeights(1, :), 4);
+disp('Решение 8.'); compare(2, criteriaMps, criteriasWeights(2, :), 4);
+disp('Решение 9.'); compare(2, criteriaMps, criteriasWeights(3, :), 4);
 
 function [result] = compare(alg, criteriaMps, criteriaWeights, alternativeNum)
 % выполнить поиск наилучшей альтернативы
@@ -63,16 +53,6 @@ for criteria = 1:criteriaNum
     pairComparisonMatrix(criteria, :, :) = mps;
 end
 
-% запуск работы алгоритма
-switch (alg)
-    case 1
-        [solution, score, scores] = ahp(criteriaWeights, pairComparisonMatrix);
-    case 2
-        [solution, score, scores] = ahpPlus(criteriaWeights, pairComparisonMatrix);
-    otherwise
-        error('wrong algorithm number');
-end
-
 algs = {'МАИ', 'ММАИ'};
 
 % вывод результатов
@@ -88,6 +68,18 @@ for criteria = 1:criteriaNum
     disp(criteria);
     disp(permute(pairComparisonMatrix(criteria, :, :), [2,3,1]));
 end
+
+
+% запуск работы алгоритма
+switch (alg)
+    case 1
+        [solution, score, scores] = ahp(criteriaWeights, pairComparisonMatrix);
+    case 2
+        [solution, score, scores] = ahpPlus(criteriaWeights, pairComparisonMatrix);
+    otherwise
+        error('wrong algorithm number');
+end
+
 
 disp('наилучшая альтернатива:'); 
 disp(solution);

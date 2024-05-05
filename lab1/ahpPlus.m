@@ -16,20 +16,18 @@ function [solution, score, alternativeScores] = ahpPlus(criteriaWeights, pairCom
     % normalize weights vector
     criteriaWeights = criteriaWeights / sum(criteriaWeights);
 
+    bufPairComparisonMatrix = pairComparisonMatrix;
+
     % STAGE 1 - iterate on criterias and calculate alternative rates
     for criteria = 1:criteriaNum    
 
         % matrix normalization
-        for alternative = 1:alternativeNum
-                          
-            s = 0;
-            for row = 1:alternativeNum
-                s = s + pairComparisonMatrix(criteria, row, alternative);
-            end
-
-            for row = 1:alternativeNum
-                pairComparisonMatrix(criteria, row, alternative) = pairComparisonMatrix(criteria, row, alternative) / s;
-            end
+        for alternative = 1:alternativeNum                         
+            
+            s = sum(pairComparisonMatrix(criteria, 1:alternativeNum, alternative));       
+      
+            pairComparisonMatrix(criteria, 1:alternativeNum, alternative) = ...
+                pairComparisonMatrix(criteria, 1:alternativeNum, alternative) / s;            
         end
         
         %find score by criteria for alternatives
@@ -40,7 +38,15 @@ function [solution, score, alternativeScores] = ahpPlus(criteriaWeights, pairCom
             score = mean(alternativeVector);
 
             criteriaAlternativeScoreMatrix(criteria, alternative) = score;
-        end        
+        end     
+
+        mps = permute(bufPairComparisonMatrix(criteria, :, :), [2, 3, 1]);
+        vka = criteriaAlternativeScoreMatrix(criteria, 1:alternativeNum);
+
+        fprintf('Проверка МПС критерия %d на согласованность:\n\n', criteria);
+
+        % check mps consistency
+        printMpsConsistencyCheck(mps, vka);
     end
 
     % STAGE 2 - create b-matrixes for criterias
@@ -68,6 +74,12 @@ function [solution, score, alternativeScores] = ahpPlus(criteriaWeights, pairCom
         end
 
         criteriaBMatrixes(criteria) = bMatrix;
+
+        fprintf('AHP+: b-матрица для критерия %d, измерение 1\n', criteria);
+        disp(bMatrix(:, :, 1));
+
+        fprintf('AHP+: b-матрица для критерия %d, измерение 2\n', criteria);
+        disp(bMatrix(:, :, 2));
 
     end
 
@@ -98,6 +110,12 @@ function [solution, score, alternativeScores] = ahpPlus(criteriaWeights, pairCom
 
         end
     end
+
+    disp('AHP+: итоговая W-матрица (измерение 1)');
+    disp(wMatrix(:, :, 1));
+
+    disp('AHP+: итоговая W-матрица (измерение 2)');
+    disp(wMatrix(:, :, 2));
     
     % STAGE 4 - count global alternative scores 
     alternativeScores = zeros(1, alternativeNum); 

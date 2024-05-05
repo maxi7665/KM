@@ -1,4 +1,4 @@
-arr=($(find . -name "*.cs"))
+arr=($(find . -name "*.m"))
 
 #save = "./listing.txt"
 
