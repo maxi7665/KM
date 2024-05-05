@@ -5,7 +5,7 @@ function [pairComparisonMatrix] = buildPairComparisonMatrix(alternativeCriteriaR
     criteriaNum = size(alternativeCriteriaRates, 2);
     alternativeNum = size(alternativeCriteriaRates, 1);
 
-    pairComparisonMatrix = zeros(alternativeNum, alternativeNum, criteriaNum);
+    pairComparisonMatrix = zeros(criteriaNum, alternativeNum, alternativeNum);
 
     % fill the pair comparison matrix
     for criteria = 1:criteriaNum

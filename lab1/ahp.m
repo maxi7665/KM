@@ -16,35 +16,47 @@ function [solution, score, alternativeScores] = ahp(criteriaWeights, pairCompari
     % normalize weights vector
     criteriaWeights = criteriaWeights / sum(criteriaWeights);
 
+    bufPairComparisonMatrix = pairComparisonMatrix;
+
     % iterate on criterias    
     for criteria = 1:criteriaNum    
 
         % matrix normalization
-        for alternative = 1:alternativeNum
-                          
-            s = 0;
-            for row = 1:alternativeNum
-                s = s + pairComparisonMatrix(criteria, row, alternative);
-            end
+        for alternative = 1:alternativeNum                         
+            
+            s = sum(pairComparisonMatrix(criteria, 1:alternativeNum, alternative));            
 
-            for row = 1:alternativeNum
-                pairComparisonMatrix(criteria, row, alternative) = pairComparisonMatrix(criteria, row, alternative) / s;
-            end
+            normalizedColumn = pairComparisonMatrix(criteria, 1:alternativeNum, alternative) / s;   
+            
+            pairComparisonMatrix(criteria, 1:alternativeNum, alternative) = normalizedColumn;
+                             
         end
-
-        criteriaWeight = criteriaWeights(criteria);
 
         %find score by criteria for alternatives
         for alternative = 1:alternativeNum
 
             alternativeVector = pairComparisonMatrix(criteria, alternative, :);
 
-            score = mean(alternativeVector);
-            weightedCriteria = score * criteriaWeight;
+            score = mean(alternativeVector);            
 
-            criteriaAlternativeWeightVectorArray(criteria, alternative) = weightedCriteria;
+            criteriaAlternativeWeightVectorArray(criteria, alternative) = score;
+        end  
 
-        end        
+        mps = permute(bufPairComparisonMatrix(criteria, :, :), [2, 3, 1]);
+        vka = criteriaAlternativeWeightVectorArray(criteria, 1:alternativeNum);
+
+        fprintf('Проверка МПС критерия %d на согласованность:\n\n', criteria);
+
+        % check mps consistency
+        printMpsConsistencyCheck(mps, vka);
+
+        criteriaWeight = criteriaWeights(criteria);
+
+        criteriaAlternativeWeightVectorArray(criteria, 1:alternativeNum) = ...
+        criteriaAlternativeWeightVectorArray(criteria, 1:alternativeNum) * criteriaWeight; 
+
+        % weightedCriteria = score * criteriaWeight;
+      
     end
 
     alternativeScores = zeros(1, alternativeNum);    
