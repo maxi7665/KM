@@ -19,9 +19,9 @@ for i = 1 : size(t, 1)
     dy(i) = dydt(t(i), sol(i, :));
 end
 
-% Построение фазового портрета
+% Построение фазового портрета координата - производная
 figure
-subplot(1, 2, 1);
+subplot(2, 2, 1);
 hold on;
 plot(sol(:, 1), dx, "b");
 plot(sol(:, 2), dy, "r");
@@ -31,10 +31,10 @@ hold off;
 legend('x:dx', 'y:dy', 'simulated x:dx', 'simulated y:dy');
 xlabel('x/y');
 ylabel('dx/dy');
-title('Фазовый портрет');
+title('Фазовый портрет 1');
 
 % Построение графиков x(t) и y(t)
-subplot(1, 2, 2);
+subplot(2, 2, 2);
 hold on;
 plot(t, sol(:, 1), 'b', t, sol(:, 2), 'r');
 plot(out.t, out.x, 'y', out.t, out.y, 'm');
@@ -43,3 +43,18 @@ legend('x(t)', 'y(t)', 'simulated x(t)', 'simulated y(t)');
 xlabel('t');
 ylabel('Значения');
 title('Решение');
+
+% Построение фазового портрета в плоскости x-y
+subplot(2, 2, 3);
+hold on;
+plot(sol(:, 1), sol(:, 2), "b", "LineWidth", 3);
+plot(out.x, out.y, "r", "LineWidth", 2);
+% plot(dx, dy, "LineWidth", 3);
+% plot(out.dx, out.dy, "LineWidth", 2);
+
+hold off;
+legend('x:y', 'simulated x:y');
+% 'dx:dy', 'simulated dx:dy');
+xlabel('x');
+ylabel('y');
+title('Фазовый портрет 2');
