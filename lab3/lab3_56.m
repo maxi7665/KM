@@ -4,13 +4,15 @@
 nextX = @(xt, yt, delta) xt + delta .* (4 .* xt - yt);
 nextY = @(xt, yt, delta) yt + delta .* (xt + 2 .* yt);
 
+run("lab3_34.m");
+
 % Начальные условия
 x0 = -1;
 y0 = 0;
 
 % набор различных параметров дискретизации
- % deltas = [0.01, 0.05, 0.1, 0.5];
-deltas = [0.1];
+deltas = [0.01, 0.05, 0.1, 0.5];
+% deltas = [0.1];
 
 deltaNum = size(deltas, 2);
 
@@ -53,14 +55,14 @@ end
 
 % hold off;
 subplot(1,2,1);
-% hold on;
-% plot(oldT, sol(:, 1), "DisplayName", "x");
-% hold off;
+hold on;
+plot(oldT, sol(:, 1), "DisplayName", "x");
+hold off;
 legend;
 subplot(1,2,2);
-% hold on;
-% plot(oldT, sol(:, 2), "DisplayName", "y");
-% hold off;
+hold on;
+plot(oldT, sol(:, 2), "DisplayName", "y");
+hold off;
 legend;
 
 % решение системы двух дифференциальных уравнений методом дискретизации
