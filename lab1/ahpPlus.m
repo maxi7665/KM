@@ -75,11 +75,15 @@ function [solution, score, alternativeScores] = ahpPlus(criteriaWeights, pairCom
 
         criteriaBMatrixes(criteria) = bMatrix;
 
-        fprintf('AHP+: b-матрица для критерия %d, измерение 1\n', criteria);
-        disp(bMatrix(:, :, 1));
+        matrixStr = buildVectorMatrixStr(bMatrix);
 
-        fprintf('AHP+: b-матрица для критерия %d, измерение 2\n', criteria);
-        disp(bMatrix(:, :, 2));
+        fprintf('AHP+: b-матрица для критерия %d:\n%s\n', criteria, matrixStr);
+
+        % fprintf('AHP+: b-матрица для критерия %d, измерение 1\n', criteria);
+        % disp(bMatrix(:, :, 1));
+        % 
+        % fprintf('AHP+: b-матрица для критерия %d, измерение 2\n', criteria);
+        % disp(bMatrix(:, :, 2));
 
     end
 
@@ -111,11 +115,13 @@ function [solution, score, alternativeScores] = ahpPlus(criteriaWeights, pairCom
         end
     end
 
-    disp('AHP+: итоговая W-матрица (измерение 1)');
-    disp(wMatrix(:, :, 1));
+    fprintf('AHP+: итоговая W-матрица:\n%s\n', buildVectorMatrixStr(wMatrix));
 
-    disp('AHP+: итоговая W-матрица (измерение 2)');
-    disp(wMatrix(:, :, 2));
+    % disp('AHP+: итоговая W-матрица (измерение 1)');
+    % disp(wMatrix(:, :, 1));
+    % 
+    % disp('AHP+: итоговая W-матрица (измерение 2)');
+    % disp(wMatrix(:, :, 2));
     
     % STAGE 4 - count global alternative scores 
     alternativeScores = zeros(1, alternativeNum); 
