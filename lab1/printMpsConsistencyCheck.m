@@ -16,10 +16,10 @@ function [result] = printMpsConsistencyCheck(mps, w)
     % вектор-столбец ВКА
     w = transpose(w);
     
-    disp('МПС (A):');
+    disp('МПС:');
     disp(mps);
     
-    disp('ВКА (W):');
+    disp('ВК:');
     disp(w);
     
     disp('Максимальное собственное значение (n):');

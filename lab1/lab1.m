@@ -31,14 +31,43 @@ disp('Решение 7.'); compare(2, criteriaMps, criteriasWeights(1, :), 4);
 disp('Решение 8.'); compare(2, criteriaMps, criteriasWeights(2, :), 4);
 disp('Решение 9.'); compare(2, criteriaMps, criteriasWeights(3, :), 4);
 
-function [result] = compare(alg, criteriaMps, criteriaWeights, alternativeNum)
+function [result] = compare(alg, criteriaAlternateMps, criteriaScores, alternativeNum)
 % выполнить поиск наилучшей альтернативы
 % alg - используемый алгоритм - 1 - МАИ, 2 - ММАИ
 % criteriaMps - containers.Map (№ критерия -> МПС[№ альтернативы, № альтернативы])
 % criteriaWeights - веса критериев
 % alternateNum - кол-во альтернатив
 
-criteriaNum = size(criteriaWeights, 2);
+criteriaNum = size(criteriaScores, 2);
+
+innerCriteriaMps = buildPairComparisonMatrix(transpose(criteriaScores));
+
+criteriaMps = zeros(criteriaNum, criteriaNum);
+
+for i = 1:criteriaNum
+    for j = 1:criteriaNum
+        criteriaMps(i, j) = innerCriteriaMps(1, i , j);
+    end
+end
+
+criteriaWeights = zeros(1, criteriaNum);
+
+bufCriteriaMps = criteriaMps;
+
+for i = 1:criteriaNum
+
+    columnSum = sum(bufCriteriaMps(:, i));
+
+    for j = 1:criteriaNum
+        val = bufCriteriaMps(j, i);
+
+        val = val / columnSum;
+
+        criteriaWeights(1, j) = criteriaWeights(1, j) + val;
+    end
+end
+
+criteriaWeights = criteriaWeights ./ criteriaNum;
 
 pairComparisonMatrix = zeros(criteriaNum, alternativeNum, alternativeNum);
 
@@ -46,7 +75,7 @@ pairComparisonMatrix = zeros(criteriaNum, alternativeNum, alternativeNum);
 % -> оценка
 for criteria = 1:criteriaNum
 
-    mps = criteriaMps(criteria);
+    mps = criteriaAlternateMps(criteria);
 
     mps = mps(1:alternativeNum, 1:alternativeNum);
 
@@ -60,14 +89,21 @@ disp('алгоритм');
 disp(algs(alg));
 
 disp('веса критериев');
+disp(criteriaScores);
+
+disp('МПС критериев:');
+disp(criteriaMps);
+
+disp('Весовой коэффициент критериев:');
 disp(criteriaWeights);
 
-disp('МПС критериев');
+disp('Проверка МПС критериев на согласованность');
+printMpsConsistencyCheck(criteriaMps, criteriaWeights);
 
-for criteria = 1:criteriaNum
-    disp(criteria);
-    disp(permute(pairComparisonMatrix(criteria, :, :), [2,3,1]));
-end
+% for criteria = 1:criteriaNum
+%     disp(criteria);
+%     disp(permute(pairComparisonMatrix(criteria, :, :), [2,3,1]));
+% end
 
 
 % запуск работы алгоритма
